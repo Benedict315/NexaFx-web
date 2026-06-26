@@ -1,0 +1,111 @@
+name: Auto Create PR
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+      - 'refactor/**'
+      - 'docs/**'
+
+jobs:
+  auto-pr:
+    name: Open Pull Request
+    runs-on: ubuntu-latest
+    # Skip if this is already a merge commit to main
+    if: github.ref != 'refs/heads/main'
+
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Derive PR title from branch name
+        id: meta
+        run: |
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          # Convert branch slug to human title: feat/stellar-wallet-card → Stellar Wallet Card
+          SLUG="${BRANCH#*/}"
+          TITLE=$(echo "$SLUG" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
+          # Detect prefix label
+          PREFIX="${BRANCH%%/*}"
+          case "$PREFIX" in
+            feat)     LABEL="feat: " ;;
+            fix)      LABEL="fix: " ;;
+            chore)    LABEL="chore: " ;;
+            refactor) LABEL="refactor: " ;;
+            docs)     LABEL="docs: " ;;
+            *)        LABEL="" ;;
+          esac
+          echo "branch=$BRANCH"      >> $GITHUB_OUTPUT
+          echo "title=${LABEL}${TITLE}" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request (if not already open)
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branch = "${{ steps.meta.outputs.branch }}";
+            const title  = "${{ steps.meta.outputs.title }}";
+            const base   = "main";
+
+            // Check if a PR already exists for this branch
+            const { data: existing } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              head:  `${context.repo.owner}:${branch}`,
+              base,
+              state: "open",
+            });
+
+            if (existing.length > 0) {
+              core.info(`PR already exists: ${existing[0].html_url}`);
+              return;
+            }
+
+            // Build PR body from commit messages since branching off main
+            const { data: commits } = await github.rest.repos.compareCommitsWithBasehead({
+              owner:    context.repo.owner,
+              repo:     context.repo.repo,
+              basehead: `main...${branch}`,
+            });
+
+            const commitLines = commits.commits
+              .map(c => `- ${c.commit.message.split('\n')[0]}`)
+              .join('\n');
+
+            const body = [
+              `## 📋 Description`,
+              `Auto-generated PR for branch \`${branch}\`.`,
+              ``,
+              `## 🛠 Changes Implemented`,
+              commitLines || '- See commit history',
+              ``,
+              `## ✅ How to Test`,
+              `1. Pull the branch and run \`npm run dev\``,
+              `2. Navigate to the affected page and verify the change`,
+              ``,
+              `## 🚀 Checklist`,
+              `- [ ] Code follows project style guidelines`,
+              `- [ ] Changes are tested and verified`,
+              `- [ ] Documentation is updated (if needed)`,
+              ``,
+              `## 🔗 Related Issues`,
+              `- Closes #`,
+            ].join('\n');
+
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              title,
+              body,
+              head: branch,
+              base,
+              draft: false,
+            });
+
+            core.info(`✅ PR created: ${pr.html_url}`);
