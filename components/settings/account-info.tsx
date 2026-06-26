@@ -1,4 +1,5 @@
 import { InfoAvatar } from "./info-avatar";
+import { StellarWalletCard } from "./stellar-wallet-card";
 import { Information } from "./information";
 import { Preference } from "./preference";
 
@@ -6,6 +7,7 @@ export function AccountInfo() {
   return (
     <div>
       <InfoAvatar />
+      <StellarWalletCard />
       <Information />
       <Preference />
 
