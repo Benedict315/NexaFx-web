@@ -260,3 +260,26 @@ export async function createAdminPushNotification(payload: { title: string; mess
     }) : 'N/A',
   };
 }
+
+export interface RevenueDataPoint {
+  date: string;    // ISO date string
+  volume: number;  // Total transaction volume for the period
+  count: number;   // Number of transactions
+}
+
+/**
+ * Confirmed Backend Endpoint Behavior:
+ * We probed the backend endpoints (`https://nexafx-backend.onrender.com/v1`) and confirmed:
+ * - `GET /admin/metrics` exists (returns 401/200).
+ * - `GET /admin/revenue` and time-series endpoints return 404 Not Found.
+ * Therefore, no time-series endpoint is currently supported by the backend, and this function
+ * remains a stub returning an empty array.
+ */
+export async function getRevenueTimeSeries(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  period: '7d' | '30d' | '90d'
+): Promise<RevenueDataPoint[]> {
+  // TODO: Wire to time-series endpoint once available
+  return [];
+}
+

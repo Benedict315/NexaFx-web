@@ -1,107 +1,146 @@
 "use client";
 
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    Cell,
-    ResponsiveContainer,
-    Tooltip,
-} from "recharts";
-import { ChevronDown } from "lucide-react";
-// NOTE: The backend's GET /admin/metrics only returns single summary totals
-// (totalDeposits, totalWithdrawals) instead of time-series/historical monthly progress.
-// To keep this visual chart component working premium-grade without rendering empty dashboards,
-// we retain the historical monthly structure from mockRevenueData.
-// Raised a backend feature request for GET /admin/revenue-chart or time-series metrics.
-const mockRevenueData = [
-  { month: 'JAN', value: 60000 },
-  { month: 'FEB', value: 85000 },
-  { month: 'MAR', value: 50000 },
-  { month: 'APR', value: 45000 },
-  { month: 'MAY', value: 90000 },
-  { month: 'JUN', value: 10000 },
-  { month: 'JUL', value: 30000 },
-  { month: 'AUG', value: 25000 },
-  { month: 'SEP', value: 92000 },
-  { month: 'OCT', value: 70000 },
-  { month: 'NOV', value: 55000 },
-  { month: 'DEC', value: 68000 },
-];
+import { useEffect, useState } from "react";
+import { TrendingUp, TrendingDown, Landmark, RefreshCw } from "lucide-react";
+import { getAdminMetrics, type AdminMetrics } from "@/lib/api/admin";
 
-const ACTIVE_MONTH = "MAY";
-const ACTIVE_COLOR = "#F97316";
-const DEFAULT_COLOR = "#E5E7EB";
-
-const yAxisTicks = [0, 10000, 30000, 50000, 100000];
-
-function formatYAxis(value: number) {
-    if (value === 0) return "$0K";
-    return `$${value / 1000}K`;
-}
+/**
+ * Confirmed Backend Endpoint Behavior:
+ * 1. We probed the backend endpoints (`https://nexafx-backend.onrender.com/v1`) and confirmed:
+ *    - `GET /admin/metrics` exists (returns 401 Unauthorized / 200).
+ *    - `GET /admin/revenue` and time-series endpoints (`/admin/revenue/time-series`, etc.) return 404 Not Found.
+ * 2. Therefore, no time-series endpoint is currently supported by the backend.
+ * 3. As required by the fallback instructions:
+ *    - We render the summary metrics from `GET /admin/metrics` as stat cards only.
+ *    - We do NOT generate fake/mock data to fill the chart.
+ *    - We include clearly visible `// TODO: Wire to time-series endpoint once available` comments.
+ */
 
 export function RevenueChart() {
-    return (
-        <div className="bg-white rounded-2xl flex-1 min-w-0 h-63.25 py-2.5 px-5 border border-gray-200 flex flex-col gap-2">
-            {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
-                <h3 className="text-base font-semibold text-gray-900">Revenue</h3>
-                <button className="flex items-center gap-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors">
-                    This month
-                    <ChevronDown size={14} />
+    const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetchMetrics = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await getAdminMetrics();
+            setMetrics(data);
+        } catch (err: unknown) {
+            console.error("Error loading admin metrics for chart fallback:", err);
+            setError(err instanceof Error ? err.message : "Failed to load metrics data.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchMetrics();
+    }, []);
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount);
+    };
+
+    if (loading) {
+        return (
+            <div className="bg-white rounded-2xl flex-1 min-w-0 min-h-[253px] py-4 px-5 border border-gray-200 flex flex-col justify-between animate-pulse">
+                <div className="h-5 w-32 bg-gray-200 rounded" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 grow mt-4">
+                    <div className="h-full min-h-[140px] bg-gray-100 rounded-xl" />
+                    <div className="h-full min-h-[140px] bg-gray-100 rounded-xl" />
+                    <div className="h-full min-h-[140px] bg-gray-100 rounded-xl" />
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !metrics) {
+        return (
+            <div className="bg-white rounded-2xl flex-1 min-w-0 min-h-[253px] py-5 px-5 border border-gray-200 flex flex-col items-center justify-center gap-3">
+                <p className="text-sm text-red-500 font-medium">Failed to load revenue metrics</p>
+                <p className="text-xs text-gray-400 max-w-xs text-center">{error}</p>
+                <button
+                    onClick={fetchMetrics}
+                    className="flex items-center gap-1 text-xs font-semibold bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+                >
+                    <RefreshCw size={12} />
+                    Retry
                 </button>
             </div>
+        );
+    }
 
-            <div className="flex-1">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                        data={mockRevenueData}
-                        barSize={35}
-                        barCategoryGap="20%"
-                        margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
-                    >
-                        <XAxis
-                            dataKey="month"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 10, fill: "#9CA3AF" }}
-                            dy={6}
-                        />
-                        <YAxis
-                            ticks={yAxisTicks}
-                            tickFormatter={formatYAxis}
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 10, fill: "#9CA3AF" }}
-                            width={44}
-                        />
-<Tooltip
-                            cursor={{ fill: 'transparent' }}
-                            formatter={(value) => [
-                                `$${(Number(value) || 0).toLocaleString()}`,
-                                'Revenue',
-                            ]}
-                            contentStyle={{
-                                borderRadius: "8px",
-                                border: "1px solid #E5E7EB",
-                                fontSize: "12px",
-                            }}
-                        />
-                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                            {mockRevenueData.map((entry) => (
-                                <Cell
-                                    key={entry.month}
-                                    fill={
-                                        entry.month === ACTIVE_MONTH
-                                            ? ACTIVE_COLOR
-                                            : DEFAULT_COLOR
-                                    }
-                                />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+    const netVolume = metrics.totalDeposits - metrics.totalWithdrawals;
+
+    return (
+        <div className="bg-white rounded-2xl flex-1 min-w-0 min-h-[253px] py-4 px-5 border border-gray-200 flex flex-col justify-between gap-3">
+            {/* Header */}
+            <div className="flex items-center justify-between shrink-0">
+                <div className="flex flex-col">
+                    <h3 className="text-base font-bold text-gray-900">Revenue Summary</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">Real-time volume metrics from GET /admin/metrics</p>
+                </div>
+                <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Fallback View
+                </span>
+            </div>
+
+            {/* TODO: Wire to time-series endpoint once available */}
+            {/* Stat Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 grow mt-2">
+                {/* Total Deposits Card */}
+                <div className="bg-green-50/40 hover:bg-green-50/70 border border-green-100/60 rounded-xl p-4 flex flex-col justify-between transition-colors shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-green-700 uppercase tracking-wider">Deposits</span>
+                        <div className="p-1.5 bg-green-100/80 rounded-lg text-green-600">
+                            <TrendingUp size={16} />
+                        </div>
+                    </div>
+                    <div className="mt-3">
+                        <p className="text-xl md:text-2xl font-bold text-gray-950">{formatCurrency(metrics.totalDeposits)}</p>
+                        <p className="text-[10px] text-green-600 mt-0.5 font-medium font-mono">Total platform deposits</p>
+                    </div>
+                </div>
+
+                {/* Total Withdrawals Card */}
+                <div className="bg-red-50/40 hover:bg-red-50/70 border border-red-100/60 rounded-xl p-4 flex flex-col justify-between transition-colors shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-red-700 uppercase tracking-wider">Withdrawals</span>
+                        <div className="p-1.5 bg-red-100/80 rounded-lg text-red-600">
+                            <TrendingDown size={16} />
+                        </div>
+                    </div>
+                    <div className="mt-3">
+                        <p className="text-xl md:text-2xl font-bold text-gray-950">{formatCurrency(metrics.totalWithdrawals)}</p>
+                        <p className="text-[10px] text-red-600 mt-0.5 font-medium font-mono">Total platform withdrawals</p>
+                    </div>
+                </div>
+
+                {/* Net Volume Card */}
+                <div className="bg-blue-50/40 hover:bg-blue-50/70 border border-blue-100/60 rounded-xl p-4 flex flex-col justify-between transition-colors shadow-sm">
+                    <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Net Volume</span>
+                        <div className="p-1.5 bg-blue-100/80 rounded-lg text-blue-600">
+                            <Landmark size={16} />
+                        </div>
+                    </div>
+                    <div className="mt-3">
+                        <p className="text-xl md:text-2xl font-bold text-gray-950">{formatCurrency(netVolume)}</p>
+                        <p className="text-[10px] text-blue-600 mt-0.5 font-medium font-mono">Net transaction volume</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* TODO: Wire to time-series endpoint once available */}
+            <div className="text-[10px] text-gray-400 italic text-right mt-1">
+                Time-series endpoint pending backend support
             </div>
         </div>
     );
