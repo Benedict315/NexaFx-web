@@ -1,0 +1,13 @@
+/**
+ * Copies the given text to the system clipboard.
+ * Returns true on success, false on failure.
+ */
+export const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (err) {
+    console.error("Failed to copy to clipboard:", err);
+    return false;
+  }
+};

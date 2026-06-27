@@ -4,6 +4,8 @@ import React, { useState, useRef } from 'react';
 import { X, Copy, ChevronRight } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { copyToClipboard } from '@/lib/utils/clipboard';
+import { truncateStellarAddress } from '@/lib/utils/stellar';
 
 type InstantDepositModalType = {
   onClose: () => void;
@@ -20,10 +22,12 @@ const InstantModalDeposit: React.FC<InstantDepositModalType> = ({
 
   const walletAddress = '0x5A08FcdBEA516Cf086572157791dB12CA3beF1B32';
 
-  const handleCopyAddress = () => {
-    navigator.clipboard.writeText(walletAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyAddress = async () => {
+    const success = await copyToClipboard(walletAddress);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
@@ -83,7 +87,7 @@ const InstantModalDeposit: React.FC<InstantDepositModalType> = ({
             </label>
             <div className='flex items-center gap-2 p-2 md:p-3 '>
               <span className='text-sm md:text-[18px] font-semibold text-foreground break-all flex-1'>
-                {walletAddress}
+                {truncateStellarAddress(walletAddress, 8)}
               </span>
               <button
                 onClick={handleCopyAddress}

@@ -3,6 +3,7 @@ import { AccountOverview } from "@/components/dashboard/account-overview";
 import DepositMethods from "@/components/dashboard/deposit";
 import { MarketOverview } from "@/components/dashboard/market-overview";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { StellarWalletCard } from "@/components/dashboard/stellar-wallet-card";
 import { WithdrawalModal } from "@/components/dashboard/withdrawal/WithdrawalModal";
 import { useWithdrawalStore } from "@/hooks/useWithdrawalStore";
 import { Download, Upload } from "lucide-react";
@@ -27,6 +28,9 @@ export default function DashboardPage() {
             onDepositClick={toggleDeposit}
             onWithdrawClick={openWithdrawal}
           />
+          <div className="px-3 md:px-4">
+            <StellarWalletCard />
+          </div>
           <div className="md:px-4 space-y-4">
             <div className="grid grid-cols-2 gap-4 px-6 pb-6 md:p-0">
               <button
