@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-export const manrope = Manrope({
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
 });

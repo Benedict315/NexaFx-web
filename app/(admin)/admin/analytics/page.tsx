@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, UserPlus, ArrowUpDown, Clock, Coins } from "lucide-react";
 import { AdminMetricCard } from "@/components/admin/AdminMetricCard";
-import { RevenueChart } from "@/components/admin/RevenueChart";
+import { RevenueChart } from "@/components/admin/revenue-chart";
 import { getAdminMetrics, getAdminUsers, type AdminMetrics, type AdminUser } from "@/lib/api/admin";
 
 export default function AnalyticsPage() {
