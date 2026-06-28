@@ -188,8 +188,8 @@ export function RevenueChart() {
   const yAxisTicks = [0, 10000, 30000, 50000, 100000];
 
   function formatYAxis(value: number) {
-    if (value === 0) return "$0K";
-    return `$${value / 1000}K`;
+    if (value === 0) return "₦0K";
+    return `₦${value / 1000}K`;
   }
 
   return (
@@ -231,7 +231,7 @@ export function RevenueChart() {
               tickLine={false}
               tick={{ fontSize: 9, fill: "#9CA3AF" }}
               dy={6}
-              tickFormatter={(dateStr) => {
+              tickFormatter={(dateStr: string) => {
                 try {
                   const d = new Date(dateStr);
                   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -250,9 +250,9 @@ export function RevenueChart() {
             />
             <Tooltip
               cursor={{ fill: "rgba(249, 115, 22, 0.05)" }}
-              content={({ active, payload }) => {
+              content={({ active, payload }: { active?: boolean; payload?: { payload: RevenueDataPoint }[] }) => {
                 if (active && payload && payload.length) {
-                  const data = payload[0].payload as RevenueDataPoint;
+                  const data = payload[0].payload;
                   return (
                     <div className="bg-white border border-gray-100 rounded-lg p-2.5 shadow-sm text-xs space-y-1">
                       <p className="font-semibold text-gray-900">
@@ -265,7 +265,7 @@ export function RevenueChart() {
                       </p>
                       <div className="h-px bg-gray-100 my-1" />
                       <p className="text-gray-500">
-                        Volume: <span className="font-bold text-gray-950">${data.volume.toLocaleString()}</span>
+                        Volume: <span className="font-bold text-gray-950">₦{data.volume.toLocaleString()}</span>
                       </p>
                       <p className="text-gray-500">
                         Transactions: <span className="font-bold text-gray-950">{data.count}</span>
